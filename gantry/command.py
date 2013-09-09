@@ -30,7 +30,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=_loglevel)
 @arg('repository')
 @expects_obj
 def deploy(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     try:
         gantry.deploy(args.repository,
                       args.to_tag,
@@ -50,7 +50,7 @@ def deploy(args):
           '(supplied as a comma-separated list)')
 @expects_obj
 def containers(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     tags = args.tags.split(',') if args.tags else None
     exclude_tags = args.exclude_tags.split(',') if args.exclude_tags else None
     for c in gantry.containers(args.repository,
@@ -69,7 +69,7 @@ def containers(args):
 @arg('-q', '--quiet', default=False)
 @expects_obj
 def ports(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     tags = args.tags.split(',') if args.tags else None
     exclude_tags = args.exclude_tags.split(',') if args.exclude_tags else None
     if not args.quiet:
@@ -80,7 +80,6 @@ def ports(args):
         print("%10d %10d" % (p[0], p[1]))
 
 parser = ArghParser(version=__version__)
-parser.add_argument('--docker-url', default=DOCKER_DEFAULT_URL)
 parser.add_commands([deploy, containers, ports])
 
 
