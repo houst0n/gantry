@@ -5,8 +5,6 @@ import subprocess
 
 import docker
 
-DOCKER_DEFAULT_URL = 'http://localhost:4243'
-
 log = logging.getLogger(__name__)
 
 
@@ -16,8 +14,8 @@ class GantryError(Exception):
 
 class Gantry(object):
 
-    def __init__(self, docker_url=DOCKER_DEFAULT_URL):
-        self.client = docker.Client(docker_url)
+    def __init__(self):
+        self.client = docker.Client()
 
     def deploy(self, repository, to_tag, from_tag, stop=True):
         """
