@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore', '.*argcomplete.*')
 from argh import arg, expects_obj, ArghParser
 
 from . import __version__
-from .gantry import Gantry, GantryError, DOCKER_DEFAULT_URL
+from .gantry import Gantry, GantryError
 
 _user_loglevel = os.environ.get('GANTRY_LOGLEVEL', '').upper()
 
