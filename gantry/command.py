@@ -27,6 +27,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=_loglevel)
 @arg('-t', '--to-tag', required=True)
 @arg('--no-stop', action='store_true',
      help="Don't stop previously-deployed containers automatically")
+@arg('-n', '--number', default=1, help="Number of containers to start up")
 @arg('repository')
 @expects_obj
 def deploy(args):
@@ -35,6 +36,7 @@ def deploy(args):
         gantry.deploy(args.repository,
                       args.to_tag,
                       args.from_tag,
+                      args.number,
                       stop=not args.no_stop)
     except GantryError as e:
         print(str(e))

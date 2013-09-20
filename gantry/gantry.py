@@ -17,7 +17,7 @@ class Gantry(object):
     def __init__(self):
         self.client = docker.Client()
 
-    def deploy(self, repository, to_tag, from_tag, stop=True):
+    def deploy(self, repository, to_tag, from_tag, number, stop=True):
         """
         For the specified repository, spin up as many containers of
         <repository>:<to_tag> as there are currently running containers of
@@ -46,7 +46,7 @@ class Gantry(object):
 
         from_containers = filter(lambda ct: ct['Image'] == from_image,
                                  containers)
-        num_containers = max(1, len(from_containers))
+        num_containers = max(1, number)
 
         log.info("Starting %d containers with %s:%s",
                  num_containers,
