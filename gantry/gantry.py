@@ -166,7 +166,7 @@ def _start_container(img_id):
 
     args.append(img_id)
     
-    log.info("Starting container with command: %s" % (" ".join(args))
+    log.info("Starting container with command: %s" % (" ".join(args)))
     
     p = subprocess.Popen(args)
     return p.wait()
