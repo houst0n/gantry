@@ -1,11 +1,14 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import logging
+import os.path
 import subprocess
 
 import docker
 
 DOCKER_DEFAULT_URL = 'http://localhost:4243'
+APP_CONFIG_PATH = '/var/lib/app_config_files/'
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +49,8 @@ class Gantry(object):
             raise GantryError('Image %s:%s not found (looking for to_tag)' %
                               (repository, to_tag))
 
+        app_config_string = read_config_string(repository)
+
         from_containers = filter(lambda ct: ct['Image'] == from_image,
                                  containers)
         num_containers = max(1, len(from_containers))
@@ -56,7 +61,7 @@ class Gantry(object):
                  to_tag)
 
         for i in xrange(num_containers):
-            retcode = _start_container(to_image)
+            retcode = _start_container(to_image, app_config_string)
             if retcode != 0:
                 raise GantryError("Failed to start container from image %s" %
                                   to_image)
@@ -74,6 +79,20 @@ class Gantry(object):
         self.client.stop(*map(lambda ct: ct['Id'], from_containers))
 
         log.info("Shut down %d old containers", len(from_containers))
+
+    def read_config_string(repository):
+         config_str = []
+         filename = APP_CONFIG_PATH + repository.split("/")[1] + ".json"
+
+         if os.path.exists(filename):
+             f = open(filename, 'r')
+             config = json.loads(f.read())
+             f.close()
+
+             for key, value in config.iteritems():
+                 config_str.append("-D%s=%s" % (key, value))
+
+          return " ".join(config_str)
 
     def containers(self, repository, tags=None, exclude_tags=None):
         """
@@ -151,7 +170,7 @@ class Gantry(object):
         return images, tags
 
 
-def _start_container(img_id):
+def _start_container(img_id, app_config_string):
     # FIXME: This should use the HTTP client, but the Python bindings are
     # out of date and don't support run() without a command, which is what
     # we need for our images build with the CMD Dockerfile directive.
@@ -167,6 +186,8 @@ def _start_container(img_id):
         args.extend(['-dns', r])
 
     args.append(img_id)
+    args.append("sh -ex /src/start-docker.sh ")
+    args.append(app_config_string)
 
     p = subprocess.Popen(args)
     return p.wait()
