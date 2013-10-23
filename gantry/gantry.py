@@ -188,7 +188,7 @@ def _start_container(img_id, app_config_string):
     args.append("/src/start-docker.sh")
     args.append(app_config_string)
 
-    log.warn('Docker Run: %s ' %
+    log.info('Starting container with command: %s ' %
         " ".join(args))
 
     p = subprocess.Popen(args)
