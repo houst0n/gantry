@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore', '.*argcomplete.*')
 from argh import arg, expects_obj, ArghParser
 
 from . import __version__
-from .gantry import Gantry, GantryError, DOCKER_DEFAULT_URL
+from .gantry import Gantry, GantryError
 
 _user_loglevel = os.environ.get('GANTRY_LOGLEVEL', '').upper()
 
@@ -27,14 +27,16 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=_loglevel)
 @arg('-t', '--to-tag', required=True)
 @arg('--no-stop', action='store_true',
      help="Don't stop previously-deployed containers automatically")
+@arg('-n', '--number', default=1, help="Number of containers to start up")
 @arg('repository')
 @expects_obj
 def deploy(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     try:
         gantry.deploy(args.repository,
                       args.to_tag,
                       args.from_tag,
+                      args.number,
                       stop=not args.no_stop)
     except GantryError as e:
         print(str(e))
@@ -50,7 +52,7 @@ def deploy(args):
           '(supplied as a comma-separated list)')
 @expects_obj
 def containers(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     tags = args.tags.split(',') if args.tags else None
     exclude_tags = args.exclude_tags.split(',') if args.exclude_tags else None
     for c in gantry.containers(args.repository,
@@ -69,7 +71,7 @@ def containers(args):
 @arg('-q', '--quiet', default=False)
 @expects_obj
 def ports(args):
-    gantry = Gantry(args.docker_url)
+    gantry = Gantry()
     tags = args.tags.split(',') if args.tags else None
     exclude_tags = args.exclude_tags.split(',') if args.exclude_tags else None
     if not args.quiet:
@@ -80,7 +82,6 @@ def ports(args):
         print("%10d %10d" % (p[0], p[1]))
 
 parser = ArghParser(version=__version__)
-parser.add_argument('--docker-url', default=DOCKER_DEFAULT_URL)
 parser.add_commands([deploy, containers, ports])
 
 

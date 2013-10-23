@@ -1,25 +1,26 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import logging
+import os.path
 import subprocess
 
 import docker
 
-DOCKER_DEFAULT_URL = 'http://localhost:4243'
-
 log = logging.getLogger(__name__)
+
+APP_CONFIG_PATH = '/var/lib/app_config_files/'
 
 
 class GantryError(Exception):
     pass
 
-
 class Gantry(object):
 
-    def __init__(self, docker_url=DOCKER_DEFAULT_URL):
-        self.client = docker.Client(docker_url)
+    def __init__(self):
+        self.client = docker.Client()
 
-    def deploy(self, repository, to_tag, from_tag, stop=True):
+    def deploy(self, repository, to_tag, from_tag, number, stop=True):
         """
         For the specified repository, spin up as many containers of
         <repository>:<to_tag> as there are currently running containers of
@@ -46,9 +47,11 @@ class Gantry(object):
             raise GantryError('Image %s:%s not found (looking for to_tag)' %
                               (repository, to_tag))
 
+        app_config_string = self._read_config_string(repository)
+
         from_containers = filter(lambda ct: ct['Image'] == from_image,
                                  containers)
-        num_containers = max(1, len(from_containers))
+        num_containers = max(1, number)
 
         log.info("Starting %d containers with %s:%s",
                  num_containers,
@@ -56,7 +59,7 @@ class Gantry(object):
                  to_tag)
 
         for i in xrange(num_containers):
-            retcode = _start_container(to_image)
+            retcode = _start_container(to_image, app_config_string)
             if retcode != 0:
                 raise GantryError("Failed to start container from image %s" %
                                   to_image)
@@ -74,6 +77,20 @@ class Gantry(object):
         self.client.stop(*map(lambda ct: ct['Id'], from_containers))
 
         log.info("Shut down %d old containers", len(from_containers))
+
+    def _read_config_string(self, repository):
+        config_str = []
+        filename = APP_CONFIG_PATH + repository.split("/")[1] + ".json"
+
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                config = json.loads(f.read())
+
+            for key, value in config.iteritems():
+                config_str.append("-D%s=%s" % (key, value))
+
+        return " ".join(config_str)
+
 
     def containers(self, repository, tags=None, exclude_tags=None):
         """
@@ -150,8 +167,7 @@ class Gantry(object):
             tags[tag] = img['Id']
         return images, tags
 
-
-def _start_container(img_id):
+def _start_container(img_id, app_config_string):
     # FIXME: This should use the HTTP client, but the Python bindings are
     # out of date and don't support run() without a command, which is what
     # we need for our images build with the CMD Dockerfile directive.
@@ -167,10 +183,16 @@ def _start_container(img_id):
         args.extend(['-dns', r])
 
     args.append(img_id)
+    args.append("/bin/sh")
+    args.append("-ex")
+    args.append("/src/start-docker.sh")
+    args.append(app_config_string)
+
+    log.warn('Docker Run: %s ' %
+        " ".join(args))
 
     p = subprocess.Popen(args)
     return p.wait()
-
 
 def _get_guest_resolvers():
     """
